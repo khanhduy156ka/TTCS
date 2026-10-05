@@ -1,0 +1,23 @@
+{
+  "alert_id": "sim-ps-001",
+  "verdict": "likely_malicious",
+  "confidence": 0.95,
+  "key_evidence": [
+    "Multiple correlated process-creation alerts were observed on WIN-LAB-1",
+    "PowerShell execution behavior was identified as suspicious by the investigation stage",
+    "The activity occurred within the same correlated incident timeline",
+    "The evidence supports MITRE ATT&CK technique T1059.001"
+  ],
+  "contradictions": [],
+  "missing_evidence": [
+    "Full forensic disk image",
+    "Complete user activity timeline"
+  ],
+  "validated_mitre_techniques": [
+    "T1059.001"
+  ],
+  "rejected_mitre_techniques": [],
+  "requires_remediation": true,
+  "summary": "Correlated evidence indicates likely malicious PowerShell execution on WIN-LAB-1. The evidence is sufficient to recommend containment and further forensic investigation.",
+  "recommended_next_step": "Prepare containment and investigation actions for SOC analyst approval."
+}

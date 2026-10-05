@@ -1,0 +1,39 @@
+{
+  "alert_id": "sim-ps-001",
+  "timestamp": "2026-09-15T21:30:00+07:00",
+  "agent_id": "001",
+  "agent_name": "WIN-11",
+  "agent_ip": "10.10.10.20",
+  "manager_name": "ubuntu-lab-soc",
+  "rule_id": "SIM1001",
+  "rule_level": 12,
+  "rule_description": "Simulated suspicious PowerShell execution",
+  "rule_groups": [
+    "windows",
+    "process_creation",
+    "powershell"
+  ],
+  "event_id": "4688",
+  "computer": "win-lab-1",
+  "channel": "Security",
+  "severity_value": "HIGH",
+  "subject_user": "Win",
+  "target_user": "Win",
+  "source_ip": null,
+  "source_port": null,
+  "workstation_name": "WIN-LAB-1",
+  "logon_type": null,
+  "authentication_package": null,
+  "process_name": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "status": null,
+  "sub_status": null,
+  "mitre_ids": [
+    "T1059.001"
+  ],
+  "mitre_techniques": [
+    "PowerShell"
+  ],
+  "mitre_tactics": [
+    "Execution"
+  ]
+}

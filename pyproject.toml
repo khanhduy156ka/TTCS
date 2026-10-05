@@ -1,0 +1,21 @@
+[project]
+name = "soc-multi-agent"
+version = "0.1.0"
+description = "Multi-agent SOC pipeline for alert triage, enrichment, investigation, and remediation planning"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "crewai>=1.15.21",
+    "fastapi>=0.141.1",
+    "google-genai>=2.23.0",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.3.5",
+    "pydantic-settings>=2.15.0",
+    "python-dotenv>=1.2.3",
+    "streamlit>=1.64.0",
+    "uvicorn>=0.52.4",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

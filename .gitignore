@@ -1,0 +1,23 @@
+# File do Python tao
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Cache cua cac cong cu dev
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Moi truong ao va secret local
+.venv
+.env
+
+# Runtime va backup local
+.backup/
+.runtime/
+
+# Dataset ngoai
+data/mitre/*.json

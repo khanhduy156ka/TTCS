@@ -1,0 +1,27 @@
+# Tu dong nhan dien file text
+* text=auto
+
+# Giu cac file text chinh o LF trong repository
+*.py text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.lock text eol=lf
+*.ps1 text eol=lf
+
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.python-version text eol=lf
+
+# File binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
