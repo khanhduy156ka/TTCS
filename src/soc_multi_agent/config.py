@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     llm_reasoning_model: str | None = None
 
     # Cau hinh Ollama
-    ollama_model: str = "qwen3:8b"
+    ollama_model: str = "qwen3.5:9b"
     ollama_base_url: str = "http://localhost:11434"
     ollama_fast_model: str | None = None
     ollama_reasoning_model: str | None = None
