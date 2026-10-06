@@ -34,6 +34,17 @@ class CaseStatus(str, Enum):
     FAILED = "failed"
 
 
+# Only these persisted outcomes constitute a completed ingestion handoff.
+# CLOSED has no producer in the current workflow and is deliberately excluded.
+INGESTION_HANDOFF_STATUSES = frozenset({
+    CaseStatus.MONITORING,
+    CaseStatus.REMEDIATION_PROPOSED,
+    CaseStatus.PENDING_HUMAN_APPROVAL,
+    CaseStatus.REMEDIATION_APPROVED,
+    CaseStatus.REMEDIATION_REJECTED,
+})
+
+
 class AuditEvent(BaseModel):
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(

@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+from collections.abc import Iterator
+
 import psycopg
 from psycopg import Connection
 from psycopg.types.json import Jsonb
@@ -19,6 +22,54 @@ def get_connection() -> Connection:
         user=settings.postgres_user,
         password=settings.postgres_password,
     )
+
+
+def reserve_case(state: SOCSharedState) -> bool:
+    """Atomically reserve an ID; never overwrite an existing workflow."""
+    if not state.case_id:
+        raise ValueError("case_id is required before reserving a case")
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO soc_cases (case_id, status, alert_id, state)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (case_id) DO NOTHING
+                RETURNING case_id
+                """,
+                (
+                    state.case_id,
+                    state.status.value,
+                    state.alert.alert_id if state.alert else None,
+                    Jsonb(state.model_dump(mode="json")),
+                ),
+            )
+            return cursor.fetchone() is not None
+
+
+@contextmanager
+def locked_case(case_id: str) -> Iterator[SOCSharedState]:
+    """Load, validate/mutate, and save a review in one row-locked transaction."""
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT state FROM soc_cases WHERE case_id = %s FOR UPDATE",
+                (case_id,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise ValueError(f"Case not found: {case_id}")
+            state = SOCSharedState.model_validate(row[0])
+            yield state
+            cursor.execute(
+                """
+                UPDATE soc_cases
+                SET status = %s, state = %s, updated_at = NOW()
+                WHERE case_id = %s
+                """,
+                (state.status.value, Jsonb(state.model_dump(mode="json")), case_id),
+            )
 
 
 def save_case(
@@ -63,6 +114,8 @@ def save_case(
             alert_id = EXCLUDED.alert_id,
             state = EXCLUDED.state,
             updated_at = NOW()
+        WHERE COALESCE(soc_cases.state->'human_decision', 'null'::jsonb)
+            = COALESCE(EXCLUDED.state->'human_decision', 'null'::jsonb)
     """
 
     with get_connection() as connection:
@@ -76,6 +129,8 @@ def save_case(
                     Jsonb(state_data),
                 ),
             )
+            if cursor.rowcount != 1:
+                raise ValueError("Case human decision changed; refusing a stale save.")
 
 
 def load_case(

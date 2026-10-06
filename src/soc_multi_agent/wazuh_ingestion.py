@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 
+from soc_multi_agent.schemas.state import INGESTION_HANDOFF_STATUSES
 from soc_multi_agent.services.alert_filter import get_candidate_reasons
 from soc_multi_agent.services.normalizer import normalize_wazuh_alert
 from soc_multi_agent.wazuh_indexer import (
@@ -177,9 +178,27 @@ def submit_alert(
     )
 
     if response.status_code == 409:
-        return "duplicate"
+        body = response.json()
+        detail = body.get("detail") if isinstance(body, dict) else None
+        if (
+            isinstance(detail, dict)
+            and detail.get("code") == "duplicate_completed"
+            and detail.get("case_id") == case_id
+            and isinstance(detail.get("status"), str)
+            and detail["status"] in INGESTION_HANDOFF_STATUSES
+        ):
+            return "duplicate"
+        raise ValueError("API did not confirm a completed duplicate.")
 
     response.raise_for_status()
+    body = response.json()
+    if (
+        not isinstance(body, dict)
+        or body.get("case_id") != case_id
+        or not isinstance(body.get("status"), str)
+        or body["status"] not in INGESTION_HANDOFF_STATUSES
+    ):
+        raise ValueError("API did not confirm a completed ingestion handoff.")
     return "processed"
 
 
@@ -279,27 +298,18 @@ def load_checkpoint(
         _parse_timestamp(timestamp)
 
     except Exception as error:
-        print(
-            f"Checkpoint could not be loaded: {error}"
-        )
-        print(
-            "A new live baseline will be created."
-        )
-        return None
+        raise ValueError(
+            "Checkpoint could not be loaded; refusing to create a new baseline."
+        ) from error
 
     if (
         data.get("agent_name") != agent_name
         or data.get("min_rule_level")
         != min_rule_level
     ):
-        print(
-            "Checkpoint stream settings differ "
-            "from this command."
+        raise ValueError(
+            "Checkpoint stream settings differ; refusing to create a new baseline."
         )
-        print(
-            "A new live baseline will be created."
-        )
-        return None
 
     return _new_checkpoint(
         timestamp=timestamp,
@@ -643,7 +653,7 @@ def process_alerts(
                         )
                         print()
 
-                        if stop_on_failure:
+                        if stop_on_failure or checkpoint is not None:
                             print(
                                 "Stopping this batch so "
                                 "the failed alert can be "
@@ -774,6 +784,9 @@ def run_watch_loop(
     reset_watermark: bool,
 ) -> None:
     """Continuously ingest only alerts newer than the watermark."""
+    if dry_run and reset_watermark:
+        raise ValueError("--dry-run cannot be combined with --reset-watermark.")
+
     print(
         "===== WAZUH LIVE INGESTION ====="
     )

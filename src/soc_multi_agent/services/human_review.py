@@ -5,8 +5,7 @@ from soc_multi_agent.schemas.state import (
     SOCSharedState,
 )
 from soc_multi_agent.services.case_repository import (
-    load_case,
-    save_case,
+    locked_case,
 )
 
 
@@ -64,60 +63,52 @@ def review_case(
         if not reason:
             reason = None
 
-    state = load_case(case_id)
+    with locked_case(case_id) as state:
+        _validate_reviewable_case(state)
 
-    if state is None:
-        raise ValueError(
-            f"Case not found: {case_id}"
+        decision = HumanDecision(
+            approved=approved,
+            analyst=analyst,
+            reason=reason,
         )
 
-    _validate_reviewable_case(state)
+        state.human_approved = approved
+        state.human_decision = decision
 
-    decision = HumanDecision(
-        approved=approved,
-        analyst=analyst,
-        reason=reason,
-    )
+        if approved:
+            state.status = (
+                CaseStatus.REMEDIATION_APPROVED
+            )
 
-    state.human_approved = approved
-    state.human_decision = decision
+            action = "remediation_approved"
 
-    if approved:
-        state.status = (
-            CaseStatus.REMEDIATION_APPROVED
+            detail = (
+                f"Remediation plan approved by "
+                f"{analyst}"
+            )
+
+        else:
+            state.status = (
+                CaseStatus.REMEDIATION_REJECTED
+            )
+
+            action = "remediation_rejected"
+
+            detail = (
+                f"Remediation plan rejected by "
+                f"{analyst}"
+            )
+
+        if reason:
+            detail += f". Reason: {reason}"
+
+        state.audit_trail.append(
+            AuditEvent(
+                stage="human_review",
+                action=action,
+                detail=detail,
+            )
         )
-
-        action = "remediation_approved"
-
-        detail = (
-            f"Remediation plan approved by "
-            f"{analyst}"
-        )
-
-    else:
-        state.status = (
-            CaseStatus.REMEDIATION_REJECTED
-        )
-
-        action = "remediation_rejected"
-
-        detail = (
-            f"Remediation plan rejected by "
-            f"{analyst}"
-        )
-
-    if reason:
-        detail += f". Reason: {reason}"
-
-    state.audit_trail.append(
-        AuditEvent(
-            stage="human_review",
-            action=action,
-            detail=detail,
-        )
-    )
-
-    save_case(state)
 
     return state
 

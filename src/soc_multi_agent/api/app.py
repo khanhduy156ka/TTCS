@@ -10,12 +10,14 @@ from soc_multi_agent.schemas.alert import (
     NormalizedAlert,
 )
 from soc_multi_agent.schemas.state import (
+    INGESTION_HANDOFF_STATUSES,
     SOCSharedState,
 )
 from soc_multi_agent.services.case_repository import (
     get_connection,
     list_cases,
     load_case,
+    reserve_case,
 )
 from soc_multi_agent.services.human_review import (
     approve_case,
@@ -247,32 +249,50 @@ def submit_alert(
             detail="case_id must not be empty.",
         )
 
-    existing_case = load_case(
-        case_id
-    )
-
-    if existing_case is not None:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "A case with this case_id "
-                "already exists."
-            ),
-        )
-
-    flow = SOCSupervisorFlow()
-
-    flow.state.case_id = case_id
-    flow.state.alert = request.alert
-
     try:
+        reserved = reserve_case(SOCSharedState(
+            case_id=case_id,
+            alert=request.alert,
+        ))
+        if not reserved:
+            existing_case = load_case(case_id)
+            status = existing_case.status if existing_case else None
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": (
+                        "duplicate_completed"
+                        if status in INGESTION_HANDOFF_STATUSES
+                        else "case_incomplete_or_failed"
+                    ),
+                    "case_id": case_id,
+                    "status": status.value if status else None,
+                },
+            )
+
+        flow = SOCSupervisorFlow()
+        flow.state.case_id = case_id
+        flow.state.alert = request.alert
         result = flow.kickoff()
+
+    except HTTPException:
+        raise
 
     except Exception as error:
         raise HTTPException(
             status_code=500,
             detail="SOC workflow processing failed.",
         ) from error
+
+    if flow.state.status not in INGESTION_HANDOFF_STATUSES:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "case_incomplete_or_failed",
+                "case_id": case_id,
+                "status": flow.state.status.value,
+            },
+        )
 
     if isinstance(
         result,
