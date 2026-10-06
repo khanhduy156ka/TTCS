@@ -1,6 +1,6 @@
 # SOC Multi-Agent
 
-He thong SOC da tac tu ho tro xu ly canh bao bao mat tu Wazuh bang cac AI agent chuyen biet cho Triage, Enrichment, Investigation va Remediation.
+Hệ thống SOC đa tác tử hỗ trợ xử lý cảnh báo bảo mật từ Wazuh bằng các AI agent chuyên biệt cho Triage, Enrichment, Investigation và Remediation.
 
 ## Pipeline
 
@@ -12,61 +12,61 @@ Wazuh
   -> Enrichment
   -> RAG
   -> Investigation
-  -> Remediation khi can
+  -> Remediation khi cần
   -> Human approval
   -> Monitoring / Approved / Rejected
 ```
 
-## Thanh phan chinh
+## Thành phần chính
 
-- Triage: danh gia canh bao va quyet dinh buoc xu ly tiep theo
-- Enrichment: bo sung IOC va threat intelligence
-- RAG: truy xuat playbook va procedure noi bo
-- Investigation: tong hop bang chung va danh gia su co
-- Remediation: tao ke hoach xu ly khi can
-- Human review: analyst phe duyet cac hanh dong remediation khi workflow yeu cau
-- Wazuh ingestion: lay alert moi tu Wazuh Indexer va dua vao pipeline
+- Triage: đánh giá cảnh báo và quyết định bước xử lý tiếp theo
+- Enrichment: bổ sung IOC và threat intelligence
+- RAG: truy xuất playbook và procedure nội bộ
+- Investigation: tổng hợp bằng chứng và đánh giá sự cố
+- Remediation: tạo kế hoạch xử lý khi cần
+- Human review: analyst phê duyệt các hành động remediation khi workflow yêu cầu
+- Wazuh ingestion: lấy alert mới từ Wazuh Indexer và đưa vào pipeline
 
-## Yeu cau
+## Yêu cầu
 
 - Python >= 3.13
-- PostgreSQL voi pgvector
-- Ollama cho cac model local
-- Wazuh Indexer khi xu ly alert thuc
+- PostgreSQL với pgvector
+- Ollama cho các model local
+- Wazuh Indexer khi xử lý alert thực
 
-Dependency Python duoc quan ly bang `uv` va khai bao trong `pyproject.toml`.
+Dependency Python được quản lý bằng `uv` và khai báo trong `pyproject.toml`.
 
-## Cai dat
+## Cài đặt
 
 ```powershell
 uv sync
 ```
 
-Cau hinh local duoc doc tu `.env` theo cac truong trong `src/soc_multi_agent/config.py`.
+Cấu hình local được đọc từ `.env` theo các trường trong `src/soc_multi_agent/config.py`.
 
-File `.env` chi dung cho moi truong local va khong duoc commit vao Git.
+File `.env` chỉ dùng cho môi trường local và không được commit vào Git.
 
-## Khoi chay API
+## Khởi chạy API
 
 ```powershell
 uv run python -m uvicorn soc_multi_agent.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-## Theo doi alert tu Wazuh
+## Theo dõi alert từ Wazuh
 
 ```powershell
 uv run python -m soc_multi_agent.wazuh_ingestion --watch --size 100 --min-level 5 --interval 15
 ```
 
-## Kich ban da kiem chung
+## Kịch bản đã kiểm chứng
 
 - Suspicious PowerShell
 - File Integrity Monitoring
 - Phishing email
 
-## Nguyen tac xu ly
+## Nguyên tắc xử lý
 
-- RAG chi cung cap guidance va provenance, khong duoc xem la incident evidence
-- Uu tien telemetry va bang chung goc hon noi dung do LLM suy dien
-- Remediation can human approval khi workflow yeu cau
-- He thong khong tu dong thuc thi endpoint remediation
+- RAG chỉ cung cấp guidance và provenance, không được xem là incident evidence
+- Ưu tiên telemetry và bằng chứng gốc hơn nội dung do LLM suy diễn
+- Remediation cần human approval khi workflow yêu cầu
+- Hệ thống không tự động thực thi endpoint remediation
