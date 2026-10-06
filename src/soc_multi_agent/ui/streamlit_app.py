@@ -63,6 +63,38 @@ def apply_ui_styles() -> None:
     margin-top: 0.25rem;
 }
 
+/* Can thang hang label va value cua cac metric Triage */
+.soc-triage-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    column-gap: 3rem;
+    row-gap: 0.45rem;
+    align-items: start;
+    margin-bottom: 0.75rem;
+}
+
+.soc-metric-label {
+    min-width: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    opacity: 0.65;
+    margin: 0;
+}
+
+.soc-metric-value {
+    width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin: 0;
+    align-self: start;
+}
+
 /* Slightly soften bordered Streamlit containers */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: 0.75rem;
@@ -162,6 +194,48 @@ def render_summary_value(
         '<div class="soc-summary-value">'
         f"{safe_value}"
         "</div>"
+    )
+
+    st.markdown(
+        html,
+        unsafe_allow_html=True,
+    )
+
+
+def render_triage_metrics(
+    category: str,
+    priority: str,
+    confidence: str,
+) -> None:
+    labels = [
+        "Category",
+        "Priority",
+        "Confidence",
+    ]
+    values = [
+        category,
+        priority,
+        confidence,
+    ]
+
+    label_html = "".join(
+        '<div class="soc-metric-label">'
+        f"{escape(label)}"
+        "</div>"
+        for label in labels
+    )
+    value_html = "".join(
+        '<div class="soc-metric-value">'
+        f"{escape(value)}"
+        "</div>"
+        for value in values
+    )
+
+    html = (
+        '<div class="soc-triage-metrics">'
+        + label_html
+        + value_html
+        + "</div>"
     )
 
     st.markdown(
@@ -367,32 +441,15 @@ def render_triage(
 
     triage = state.triage
 
-    col1, col2, col3 = st.columns(
-        3,
-        gap="large",
+    render_triage_metrics(
+        category=format_label(
+            triage.category
+        ),
+        priority=format_label(
+            triage.priority.value
+        ),
+        confidence=f"{triage.confidence:.0%}",
     )
-
-    with col1:
-        st.metric(
-            "Category",
-            format_label(
-                triage.category
-            ),
-        )
-
-    with col2:
-        st.metric(
-            "Priority",
-            format_label(
-                triage.priority.value
-            ),
-        )
-
-    with col3:
-        st.metric(
-            "Confidence",
-            f"{triage.confidence:.0%}",
-        )
 
     st.write(
         "**Suspicious:**",
