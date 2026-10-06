@@ -1,3 +1,5 @@
+import pytest
+
 from soc_multi_agent.agents.enrichment import apply_enrichment_guardrails
 from soc_multi_agent.agents.investigation import (
     _apply_email_investigation_guardrail,
@@ -285,6 +287,43 @@ def test_fim_security_weakening_requires_investigation_and_remediation() -> None
         for item in investigation.key_evidence
     )
     assert "SOC analyst approval" in investigation.summary
+
+
+@pytest.mark.parametrize(
+    "initial_verdict",
+    [
+        InvestigationVerdict.BENIGN,
+        InvestigationVerdict.LIKELY_BENIGN,
+        InvestigationVerdict.INCONCLUSIVE,
+    ],
+)
+def test_fim_security_weakening_preserves_verdict_enum(
+    initial_verdict: InvestigationVerdict,
+) -> None:
+    raw = _raw_base_alert(
+        "reg-fim-verdict-enum",
+        rule_id="550",
+        rule_level=7,
+        rule_description="Integrity checksum changed",
+        rule_groups=["syscheck"],
+    )
+    raw["syscheck"] = {
+        "event": "modified",
+        "diff": "< mode=secure\n> mode=disabled",
+    }
+    alert = normalize_wazuh_alert(raw)
+
+    investigation = apply_investigation_guardrails(
+        alert,
+        _investigation_result(
+            alert.alert_id,
+            verdict=initial_verdict,
+        ),
+    )
+
+    assert investigation.verdict == InvestigationVerdict.SUSPICIOUS
+    assert isinstance(investigation.verdict, InvestigationVerdict)
+    assert investigation.verdict.value == "suspicious"
 
 
 def test_fim_security_enabling_does_not_trigger_restoration() -> None:

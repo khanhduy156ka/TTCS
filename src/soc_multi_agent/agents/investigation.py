@@ -1269,7 +1269,7 @@ def apply_investigation_guardrails(
             "likely_benign",
             "inconclusive",
         }:
-            result.verdict = "suspicious"
+            result.verdict = InvestigationVerdict.SUSPICIOUS
 
         before, after = _fim_diff_values(
             alert
