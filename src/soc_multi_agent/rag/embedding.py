@@ -2,13 +2,15 @@
 
 import httpx
 
+from soc_multi_agent.config import settings
+
 from soc_multi_agent.rag.database import (
     EMBEDDING_DIMENSIONS,
     EMBEDDING_MODEL,
 )
 
 
-OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_BASE_URL = settings.ollama_base_url
 EMBED_TIMEOUT_SECONDS = 120.0
 
 
