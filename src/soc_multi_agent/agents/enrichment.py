@@ -423,9 +423,11 @@ def _email_summary(
         )
 
     parts.append(
-        "Threat-intelligence reputation supports continued investigation "
-        "of the email and its IOCs, but does not by itself establish "
-        "credential theft, execution, or endpoint compromise."
+        "Evaluate any available VirusTotal detections for each exact IOC. "
+        "When VirusTotal has no report for an IOC, its reputation remains "
+        "unknown. Observed email indicators can warrant further review, "
+        "but neither IOC reports nor missing reports establish credential "
+        "theft, execution, or endpoint compromise."
     )
 
     return " ".join(parts)
