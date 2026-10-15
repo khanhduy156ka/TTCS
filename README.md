@@ -4,23 +4,19 @@ A lab-oriented Security Operations Center (SOC) prototype that analyzes Wazuh al
 
 ## Architecture
 
-```text
-Wazuh Indexer -> Watcher -> FastAPI -> SOC Supervisor
-                                         |
-                                      Triage
-                                         |
-                                     Enrichment
-                                         |
-                                 RAG + Investigation
-                                         |
-                               Remediation (if needed)
-                                         |
-                              Human review (if needed)
-
-PostgreSQL <-> Streamlit (cases and review decisions)
+```mermaid
+flowchart LR
+    A["Wazuh Agent"] --> B["Wazuh Manager / Indexer"]
+    B --> C["Watcher"]
+    C --> D["FastAPI"]
+    D --> E["SOC Multi-Agent Flow"]
+    E <--> F[("PostgreSQL + pgvector")]
+    G["Streamlit"] <--> F
+    H["RAG Playbooks"] --> F
+    I["Ollama"] -.-> E
 ```
 
-Stages are conditional: an alert may be routed to monitoring before investigation or remediation. RAG provides playbook guidance, not incident evidence. Human approval records a decision; it does not execute remediation on an endpoint.
+The workflow follows **Triage → Enrichment → Investigation → Remediation**, with conditional routing to Monitoring when further analysis is unnecessary. RAG retrieves playbook context before Investigation and is optional if retrieval fails. Streamlit reads cases directly from PostgreSQL; human review records approval or rejection without executing endpoint remediation.
 
 ## Requirements
 
@@ -30,6 +26,8 @@ Stages are conditional: an alert may be routed to monitoring before investigatio
 - [Wazuh Indexer](https://documentation.wazuh.com/current/) for live alert ingestion
 
 An existing PostgreSQL database/user and a configured Wazuh environment are assumed. Gemini and VirusTotal are optional integrations.
+
+For the VMware networking and Wazuh Agent configuration used in the lab, see [Lab setup](docs/lab-setup.md).
 
 ## Setup
 
