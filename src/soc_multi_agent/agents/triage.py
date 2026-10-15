@@ -581,8 +581,10 @@ def _apply_email_triage_guardrail(
     result: TriageResult,
 ) -> None:
     """
-    Giữ nguyên priority, confidence và quyết định định tuyến của LLM, đồng thời
-    dựng lại phần bằng chứng email từ các trường xác định. Nếu Wazuh định tuyến
+    Giữ nguyên priority, confidence, suspicious và quyết định Investigation
+    của LLM, đồng thời dựng lại bằng chứng email từ các trường xác định.
+    Với email-security observation có IOC, yêu cầu Enrichment để kiểm tra
+    bằng chứng trước khi quyết định dừng ở Monitoring. Nếu Wazuh định tuyến
     sự kiện vào nhóm phishing thì dùng ``phishing`` làm category của workflow,
     không xem nhãn này là bằng chứng phishing thành công hay endpoint bị xâm nhập.
 
@@ -607,6 +609,18 @@ def _apply_email_triage_guardrail(
             alert
         )
     )
+
+    # Email co IOC can duoc Enrichment kiem tra truoc khi ket luan Monitoring.
+    # Khong tu dong nang priority, gan suspicious hay ep Investigation.
+    if (
+        alert.email_event_type == "email_security_observation"
+        and (
+            alert.email_urls
+            or alert.email_domains
+            or alert.email_attachment_sha256
+        )
+    ):
+        result.requires_enrichment = True
 
 
 def apply_triage_guardrails(
