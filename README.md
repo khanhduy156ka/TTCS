@@ -10,10 +10,10 @@ flowchart LR
     B --> C["Watcher"]
     C --> D["FastAPI"]
     D --> E["SOC Multi-Agent Flow"]
-    E <--> F[("PostgreSQL + pgvector")]
-    G["Streamlit"] <--> F
-    H["RAG Playbooks"] --> F
-    I["Ollama"] -.-> E
+    E <-->|"Cases + RAG context"| F[("PostgreSQL + pgvector")]
+    G["Knowledge Playbooks"] -->|"RAG ingestion"| F
+    H["Streamlit"] <-->|"Cases + review decisions"| F
+    I["Ollama"] -.->|"LLM inference"| E
 ```
 
 The workflow follows **Triage → Enrichment → Investigation → Remediation**, with conditional routing to Monitoring when further analysis is unnecessary. RAG retrieves playbook context before Investigation and is optional if retrieval fails. Streamlit reads cases directly from PostgreSQL; human review records approval or rejection without executing endpoint remediation.
@@ -34,7 +34,7 @@ For the VMware networking and Wazuh Agent configuration used in the lab, see [La
 ```bash
 git clone https://github.com/khanhduy156ka/TTCS.git
 cd TTCS
-uv sync --no-dev
+uv sync
 cp .env.example .env
 ```
 
@@ -90,7 +90,7 @@ uv run python -m soc_multi_agent.wazuh_ingestion --watch --size 100 --min-level 
 - API/database health: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 - Dashboard: [http://localhost:8501](http://localhost:8501) (default Streamlit port)
 
-The health endpoint checks **PostgreSQL connectivity only**. Streamlit reads stored cases directly from PostgreSQL. On its first run without a checkpoint, the watcher starts from the latest indexed alert; start it **before** generating new lab alerts. Checkpoints are stored under `.runtime/`.
+The health endpoint checks **PostgreSQL connectivity only**. Streamlit reads stored cases directly from PostgreSQL. On its first run without a checkpoint, the watcher starts from the latest indexed alert; start it **before** generating new lab alerts. Checkpoints are stored under `.runtime/`. The Watcher applies an incident-candidate filter, so not every indexed Wazuh event produces a case.
 
 ## Notes
 

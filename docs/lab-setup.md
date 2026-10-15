@@ -29,7 +29,7 @@ Observed `ossec.conf` log sources:
 - Windows Event Channels: `Application`, `Security`, `System`
 - `Microsoft-Windows-PowerShell/Operational`
 - `Microsoft-Windows-Windows Defender/Operational`
-- `active-response\\active-responses.log` (syslog format)
+- `active-response\active-responses.log` (syslog format)
 
 **File Integrity Monitoring (FIM)** directories were not confirmed by the inspected configuration output; enable and document the actual `syscheck` paths only if required by the lab. The list above does not establish email ingestion or custom Wazuh rules.
 
@@ -49,13 +49,13 @@ Configure the project `.env` for this lab (example only; supply your own account
 WAZUH_INDEXER_URL=https://192.168.41.10:9200
 ```
 
-A successful TCP probe confirms network reachability, **not** HTTPS trust or Indexer authentication. Use the correct certificate trust configuration for `WAZUH_VERIFY_SSL`.
+A successful TCP probe confirms network reachability, **not** HTTPS trust or Indexer authentication. Use the correct certificate trust configuration for `WAZUH_VERIFY_SSL`. For self-signed Indexer certificates, configure a trusted CA bundle (for example with `SSL_CERT_FILE`) when `WAZUH_VERIFY_SSL=true`; do not disable TLS verification outside an isolated lab.
 
 ## Verification
 
 1. Check that the Windows Agent is **Active** in Wazuh.
 2. Confirm that relevant events appear in Wazuh Indexer.
-3. Start the SOC API and Watcher (commands in the root README), then generate an authorized lab event.
+3. Start the SOC API and Watcher (commands in the root README), then generate an authorized event that meets the Watcher's incident-candidate filter.
 4. Confirm the alert becomes a case in PostgreSQL and appears in Streamlit.
 
-The Watcher starts at the newest indexed event on its first run without a checkpoint; start it **before** generating an event to test live ingestion.
+The Watcher queries Wazuh alerts from rule level 5 but only forwards selected incident candidates (MITRE-mapped, `authentication_failed` group, or high-severity alerts); known SCA/noise is excluded. It starts at the newest indexed event on its first run without a checkpoint, so start it **before** generating an event to test live ingestion.
