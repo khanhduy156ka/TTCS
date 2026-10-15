@@ -983,21 +983,24 @@ def _apply_email_investigation_guardrail(
     if no_positive_impact_evidence:
         result.requires_remediation = False
 
-    summary_parts: list[str] = []
+    # Summary phai phan anh verdict thuc te, khong ep thanh "suspicious".
+    summary_parts: list[str] = [
+        f"The investigation verdict for this message is '{result.verdict.value}'."
+    ]
 
     if phishing_ti_supported:
         summary_parts.append(
-            "The available evidence supports classifying this message as "
-            "likely malicious phishing. Threat intelligence for an exact "
-            "email URL or domain includes malicious detections together with "
-            "provider phishing/fraud categorization."
+            "VirusTotal reports malicious detections and phishing/fraud "
+            "categorization for an exact email URL or domain. This supports "
+            "phishing risk but does not establish recipient interaction "
+            "or endpoint compromise."
         )
     else:
         summary_parts.append(
-            "The message remains suspicious and requires phishing "
-            "investigation, but the currently supplied threat-intelligence "
-            "evidence does not by itself establish a likely-malicious "
-            "message verdict."
+            "Available threat-intelligence results do not independently "
+            "establish likely-malicious phishing for this message. "
+            "Observed email indicators should be assessed with additional "
+            "context; unknown IOC reports do not establish benignity."
         )
 
     if sender_reply_mismatch:
@@ -1030,9 +1033,9 @@ def _apply_email_investigation_guardrail(
 
     summary_parts.append(
         "No supplied evidence establishes credential submission, malicious "
-        "attachment execution, persistence, or endpoint compromise. IOC "
-        "reputation therefore supports the phishing assessment but does not "
-        "justify claiming host compromise."
+        "attachment execution, persistence, or endpoint compromise. "
+        "VirusTotal IOC findings do not by themselves prove host compromise; "
+        "missing IOC reports leave reputation unknown."
     )
 
     if not result.requires_remediation:
