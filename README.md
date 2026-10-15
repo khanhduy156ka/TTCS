@@ -64,7 +64,7 @@ Các giai đoạn AI được gọi **tuần tự hoặc theo điều kiện**, 
 uv sync
 ```
 
-Ứng dụng đọc cấu hình qua file `.env` tại thư mục gốc (xem `src/soc_multi_agent/config.py`). Các trường cấu hình bắt buộc khi khởi tạo Settings gồm kết nối Wazuh Indexer và mật khẩu PostgreSQL. Ví dụ **chỉ để minh họa tên biến**, phải thay giá trị theo môi trường của bạn:
+Ứng dụng đọc cấu hình qua file `.env` tại thư mục gốc (xem `src/soc_multi_agent/config.py`). Sao chép `.env.example` thành `.env` (trên PowerShell: `Copy-Item .env.example .env`), sau đó thay toàn bộ giá trị mẫu. Các trường cấu hình bắt buộc khi khởi tạo Settings gồm kết nối Wazuh Indexer và mật khẩu PostgreSQL. Ví dụ:
 
 ```dotenv
 WAZUH_INDEXER_URL=https://YOUR_INDEXER_HOST:9200
@@ -91,6 +91,17 @@ PostgreSQL cần được tạo sẵn database/user tương ứng với cấu h�
 ```powershell
 psql -h localhost -U soc_app -d soc_multi_agent -f sql/schema.sql
 ```
+
+
+### Chuẩn bị dữ liệu MITRE ATT&CK
+
+Module `services/mitre_attack.py` đọc `data/mitre/enterprise-attack.json`. File dữ liệu này không được đưa vào repository; để chuẩn bị môi trường mới, chạy từ thư mục gốc:
+
+```powershell
+uv run python scripts/download_mitre.py
+```
+
+Script tải dataset Enterprise ATT&CK STIX công khai từ repository `mitre-attack/attack-stix-data`, kiểm tra JSON cơ bản rồi lưu đúng vị trí. Cần có kết nối Internet. Vì nguồn mặc định là nhánh `master`, nội dung có thể thay đổi theo thời điểm: muốn tái lập chính xác một phiên bản nghiên cứu, sử dụng URL tại một commit/tag cụ thể và lưu lại SHA-256 của file.
 
 ### Chuẩn bị Ollama
 
@@ -211,23 +222,15 @@ Watcher lưu checkpoint mặc định tại `.runtime/wazuh_ingestion_state.json
 
 Không tùy tiện xóa checkpoint hoặc dùng `--reset-watermark`: thao tác reset có thể khiến cảnh báo cũ bị bỏ qua. Có thể dùng `--dry-run` để xem đánh giá ứng viên mà không gửi cảnh báo hoặc lưu checkpoint live.
 
-## 5. Kiểm thử
+## 5. Kiểm tra hệ thống sau cài đặt
 
-Chạy các bài kiểm thử có trong `tests/`:
+- Truy cập `http://127.0.0.1:8000/health`: API và PostgreSQL phải kết nối thành công.
+- Truy cập `http://127.0.0.1:8000/docs` để kiểm tra các endpoint.
+- Mở Streamlit và xác nhận danh sách case có thể truy vấn từ PostgreSQL (ban đầu có thể trống).
+- Khi kết nối Wazuh thực, chạy Watcher và quan sát log chuyển cảnh báo mới vào API. Chỉ kiểm thử bằng dữ liệu được phép sử dụng trong môi trường lab.
+- Kiểm tra số tài liệu RAG sau khi ingest bằng `uv run python -c "from soc_multi_agent.rag.database import get_rag_schema_status; print(get_rag_schema_status())"`.
 
-```powershell
-uv run pytest
-```
-
-Các nhóm kiểm thử bao gồm định tuyến/chuẩn hóa, guardrail và tình huống bảo vệ trạng thái. Kết quả phụ thuộc môi trường, phiên bản và thời điểm chạy; không dùng số ca kiểm thử đạt làm chỉ số độ chính xác của mô hình AI.
-
-Ba kịch bản được nhóm sử dụng để đánh giá/demo gồm:
-
-- **Suspicious PowerShell**
-- **File Integrity Monitoring (FIM)**
-- **Phishing email**
-
-Các script trong `benchmarks/` đánh giá phản hồi mô hình theo dữ liệu và tiêu chí định sẵn; **không đồng nghĩa với kiểm thử đầu cuối** từ Wazuh qua API, PostgreSQL và Streamlit.
+Các script nghiên cứu `benchmarks/`, bộ kiểm thử `tests/` và chương trình fixture thủ công đã được bỏ khỏi nhánh chính để repository tập trung vào hệ thống vận hành; có thể tra cứu trong lịch sử Git nếu cần.
 
 ## Giới hạn của nguyên mẫu
 
