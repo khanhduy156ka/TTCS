@@ -7,6 +7,7 @@ from soc_multi_agent.schemas.state import (
     CaseStatus,
     SOCSharedState,
 )
+from soc_multi_agent.schemas.triage import TriagePriority
 from soc_multi_agent.services.case_repository import (
     list_cases,
     load_case,
@@ -1233,15 +1234,29 @@ def main() -> None:
         )
     )
 
-    if selected_status != "all":
-        visible_cases = [
-            case
-            for case in cases
-            if case["status"]
-            == selected_status
-        ]
-    else:
-        visible_cases = cases
+    priority_options = [
+        "all",
+        *(priority.value for priority in TriagePriority),
+    ]
+
+    selected_priority = st.sidebar.selectbox(
+        "Priority filter",
+        priority_options,
+        format_func=format_label,
+    )
+
+    visible_cases = [
+        case
+        for case in cases
+        if (
+            selected_status == "all"
+            or case["status"] == selected_status
+        )
+        and (
+            selected_priority == "all"
+            or case["priority"] == selected_priority
+        )
+    ]
 
     if not visible_cases:
         st.warning(
