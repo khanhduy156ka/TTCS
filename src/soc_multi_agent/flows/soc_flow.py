@@ -13,6 +13,7 @@ from soc_multi_agent.agents.enrichment import (
     run_enrichment_analysis,
 )
 from soc_multi_agent.agents.investigation import (
+    _email_ti_supports_phishing,
     run_investigation,
 )
 from soc_multi_agent.agents.remediation import (
@@ -30,6 +31,7 @@ from soc_multi_agent.schemas.state import (
     CaseStatus,
     SOCSharedState,
 )
+from soc_multi_agent.schemas.triage import TriagePriority
 from soc_multi_agent.services.case_repository import (
     save_case,
 )
@@ -211,6 +213,57 @@ class SOCSupervisorFlow(Flow[SOCSharedState]):
 
         self.state.enrichment_assessment = assessment
         self.state.status = CaseStatus.ENRICHED
+
+        # Reuse the existing triage fields rather than introducing a second
+        # priority. Triage runs before VirusTotal, so confirmed phishing may
+        # require a higher priority once enrichment is available.
+        triage = self.state.triage
+        if (
+            triage is not None
+            and alert.email_event_type == "email_security_observation"
+            and _email_ti_supports_phishing(enrichment)
+        ):
+            previous_priority = triage.priority
+            previous_suspicious = triage.suspicious
+            risk_level = str(assessment.risk_level).strip().casefold()
+            minimum_priority = (
+                TriagePriority.HIGH
+                if risk_level in {"high", "critical"}
+                else TriagePriority.MEDIUM
+            )
+            priority_rank = {
+                TriagePriority.LOW: 0,
+                TriagePriority.MEDIUM: 1,
+                TriagePriority.HIGH: 2,
+                TriagePriority.CRITICAL: 3,
+            }
+            if (
+                priority_rank[triage.priority]
+                < priority_rank[minimum_priority]
+            ):
+                triage.priority = minimum_priority
+
+            triage.suspicious = True
+
+            if (
+                triage.priority != previous_priority
+                or triage.suspicious != previous_suspicious
+            ):
+                self.state.audit_trail.append(
+                    AuditEvent(
+                        stage="enrichment",
+                        action="confirmed_phishing_priority_updated",
+                        detail=(
+                            "Post-enrichment phishing IOC evidence updated "
+                            "existing triage fields: "
+                            f"priority={previous_priority.value}"
+                            f"->{triage.priority.value}, "
+                            f"suspicious={previous_suspicious}"
+                            f"->{triage.suspicious}, "
+                            f"enrichment_risk={assessment.risk_level}"
+                        ),
+                    )
+                )
 
         self.state.audit_trail.append(
             AuditEvent(
